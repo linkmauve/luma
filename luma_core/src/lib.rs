@@ -74,6 +74,9 @@ pub mod vi;
 //IPC Subsystem
 pub mod ipc;
 
+// GX Subsystem
+pub mod gx;
+
 /// Do nothing, this is for Dolphin’s use until we get actual USB Gecko support.
 ///
 /// This function must exist and its symbol must be kept in order to get HLE debugging in Dolphin.

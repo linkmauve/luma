@@ -66,3 +66,6 @@ pub mod allocate;
 
 // VI Subsystem
 pub mod vi;
+
+// GX Subsystem
+pub mod gx;

@@ -9,6 +9,40 @@
 
 extern crate alloc;
 
+trait PointerExt {
+    fn as_cached(self) -> Self;
+    fn as_uncached(self) -> Self;
+    fn as_phys(self) -> u32;
+}
+
+impl<T> PointerExt for *const T {
+    fn as_cached(self) -> Self {
+        (self.as_phys() | 0x8000_0000) as *const T
+    }
+
+    fn as_uncached(self) -> Self {
+        (self.as_phys() | 0xc000_0000) as *const T
+    }
+
+    fn as_phys(self) -> u32 {
+        (self as u32) & 0x1fff_ffff
+    }
+}
+
+impl<T> PointerExt for *mut T {
+    fn as_cached(self) -> Self {
+        (self.as_phys() | 0x8000_0000) as *mut T
+    }
+
+    fn as_uncached(self) -> Self {
+        (self.as_phys() | 0xc000_0000) as *mut T
+    }
+
+    fn as_phys(self) -> u32 {
+        (self as u32) & 0x1fff_ffff
+    }
+}
+
 // Broadway Processor Utilities
 pub mod processor;
 

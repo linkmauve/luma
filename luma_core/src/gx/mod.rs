@@ -12,8 +12,11 @@ use core::ptr;
 use core::mem;
 
 pub mod bp;
+pub mod cp;
+pub mod xf;
 
 const CP: *mut u16 = 0xcc00_0000 as *mut u16;
+const PE: u32 = 0xcc00_1000;
 const PI: *mut u32 = 0xcc00_3000 as *mut u32;
 const BP: u8 = 0x61;
 
@@ -177,5 +180,82 @@ impl Gx {
     /// Initialise the BP, and get access to its commands
     pub fn bp(&mut self) -> bp::Bp {
         bp::Bp::new(self)
+    }
+
+    /// Initialise the CP, and get access to its commands
+    pub fn cp(&mut self) -> cp::Cp {
+        cp::Cp::new(self)
+    }
+
+    /// Initialise the XF, and get access to its commands
+    pub fn xf(&mut self) -> xf::Xf {
+        xf::Xf::new(self)
+    }
+    /// Send vertices
+    #[inline(always)]
+    pub fn invalidate_vertex_cache(&mut self) {
+        self.wp.write8(0x48);
+    }
+
+    /// Send vertices
+    #[inline(always)]
+    pub fn send_vertices(&mut self) {
+        self.wp.write8(0x90);
+        self.wp.write16(3);
+
+        self.wp.write8(0);
+        self.wp.write8(0);
+
+        self.wp.write8(1);
+        self.wp.write8(1);
+
+        self.wp.write8(2);
+        self.wp.write8(2);
+
+        /*
+        self.wp.write8(0x80);
+        self.wp.write16(4);
+
+        self.wp.write32(0x4282_0000);
+        self.wp.write32(0);
+        self.wp.writef32(286.);
+        self.wp.write32(0xdc00_00ff);
+        self.wp.writef32(0.);
+        self.wp.writef32(0.);
+
+        self.wp.write32(0x4282_0000);
+        self.wp.write32(0);
+        self.wp.writef32(158.);
+        self.wp.write32(0xdc00_00ff);
+        self.wp.writef32(0.);
+        self.wp.writef32(1.);
+
+        self.wp.write32(0x4410_4000);
+        self.wp.write32(0);
+        self.wp.writef32(286.);
+        self.wp.write32(0xdc00_00ff);
+        self.wp.writef32(1.);
+        self.wp.writef32(0.);
+
+        self.wp.write32(0x4410_4000);
+        self.wp.write32(0);
+        self.wp.writef32(158.);
+        self.wp.write32(0xdc00_00ff);
+        self.wp.writef32(1.);
+        self.wp.writef32(1.);
+        */
+
+        //42820000 00000000 438f0000 dc0000ff 0000000000000000
+        //                  ↑ 286.
+        //42820000 00000000 431e0000 dc0000ff 000000003f800000
+        //                  ↑ 158.
+        //44104000 00000000 438f0000 dc0000ff 3f80000000000000
+        //44104000 00000000 431e0000 dc0000ff 3f8000003f800000
+    }
+
+    /// Flush the write-gather pipe
+    #[inline(always)]
+    pub fn flush(&mut self) {
+        self.wp.flush();
     }
 }

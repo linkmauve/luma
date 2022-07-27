@@ -40,7 +40,7 @@ fn rgba2yuyv(pixel: u32, odd: bool) -> u16 {
 }
 
 /// Ported from Weston’s clients/simple-shm.c
-fn paint_pixels(mut image: *mut u16, padding: u32, width: u32, height: u32, time: u32) {
+fn paint_pixels(mut image: *mut u16, padding: i32, width: i32, height: i32, time: i32) {
     let halfh = padding + (height - padding * 2) / 2;
     let halfw = padding + (width - padding * 2) / 2;
 
@@ -56,7 +56,7 @@ fn paint_pixels(mut image: *mut u16, padding: u32, width: u32, height: u32, time
 
         image = unsafe { image.offset(padding as isize) };
         for x in padding..(width - padding) {
-            let mut v: u32;
+            let mut v;
 
             /* squared distance from center */
             let r2 = (x - halfw) * (x - halfw) + y2;
@@ -70,7 +70,7 @@ fn paint_pixels(mut image: *mut u16, padding: u32, width: u32, height: u32, time
             }
             v &= 0x00ffffff;
 
-            unsafe { *image = rgba2yuyv(v, (x & 1) != 0) };
+            unsafe { *image = rgba2yuyv(v as u32, (x & 1) != 0) };
             image = unsafe { image.offset(1) };
         }
 

@@ -155,7 +155,7 @@ impl<'a> Bp<'a> {
     #[inline(always)]
     pub fn do_copy(&mut self, flags: CopyFlag) {
         let register = 0x52;
-        self.write(register, flags.bits);
+        self.write(register, flags.bits());
     }
 
     /// TODO

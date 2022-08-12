@@ -7,12 +7,12 @@
 extern crate luma_core;
 extern crate luma_runtime;
 
-use luma_core::gx::{bp::CopyFlag, Gx, Efb};
+use luma_core::println;
+use luma_core::gx::{bp::{CopyFlag, Bp}, Gx, Efb};
 use luma_core::vi::{Vi, Xfb};
 use core::fmt::Write;
 
 /// Fill the padding with white pixels.
-#[inline(never)]
 fn fill_padding(efb: &mut Efb, width: usize, height: usize) {
     for y in 0..height {
         if y < 20 || y >= height - 20 {
@@ -29,7 +29,7 @@ fn fill_padding(efb: &mut Efb, width: usize, height: usize) {
 }
 
 /// Ported from Weston’s clients/simple-shm.c
-fn paint_pixels(efb: &mut Efb, padding: usize, width: usize, height: usize, time: usize) {
+fn paint_pixels(efb: &mut Efb, padding: i32, width: i32, height: i32, time: i32) {
     let halfh = padding + (height - padding * 2) / 2;
     let halfw = padding + (width - padding * 2) / 2;
 
@@ -57,9 +57,22 @@ fn paint_pixels(efb: &mut Efb, padding: usize, width: usize, height: usize, time
             }
 
             // TODO: avoid using EFB pokes, these are slow.  Instead, use a textured draw.
-            efb.poke(x, y, v as u32);
+            efb.poke(x as usize, y as usize, v as u32);
         }
     }
+}
+
+// Copy the EFB to the XFB using BP.
+fn copy_efb_to_xfb(bp: &mut Bp, xfb: &mut Xfb, width: u32, height: u32) {
+    bp.set_efb_coord(0, 0);
+    bp.set_efb_size(width, height);
+    bp.set_output(xfb);
+    bp.set_copy_clear_color(255, 0, 0, 0);
+    bp.set_copy_clear_depth(0);
+    bp.set_filter([0x666666, 0x666666, 0x666666, 0x666666]);
+    bp.set_vertical_filter([0x00, 0x00, 0x15, 0x16, 0x15, 0x00, 0x00]);
+    bp.do_copy(CopyFlag::CLEAR | CopyFlag::TO_XFB);
+    bp.flush();
 }
 
 fn main() {
@@ -75,23 +88,15 @@ fn main() {
 
     let mut i = 0;
     loop {
+        println!("frame {i}");
         {
             let efb = gx.efb_mut();
-            paint_pixels(efb, 20, 640, 480, i);
+            paint_pixels(efb, 20, width as i32, height as i32, i);
         }
 
-        // Copy the EFB to the XFB using BP.
         {
             let mut bp = gx.bp();
-            bp.set_efb_coord(0, 0);
-            bp.set_efb_size(width as u32, height as u32);
-            bp.set_output(vi.xfb());
-            bp.set_copy_clear_color(255, 0, 0, 0);
-            bp.set_copy_clear_depth(0);
-            bp.set_filter([0x666666, 0x666666, 0x666666, 0x666666]);
-            bp.set_vertical_filter([0x00, 0x00, 0x15, 0x16, 0x15, 0x00, 0x00]);
-            bp.do_copy(CopyFlag::CLEAR | CopyFlag::TO_XFB);
-            bp.flush();
+            copy_efb_to_xfb(&mut bp, vi.xfb(), width as u32, height as u32);
         }
 
         i += 1;

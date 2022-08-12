@@ -3,9 +3,8 @@
 //! Contains functions for basic GX access.
 
 use core::arch::asm;
-use crate::io::{read32, write32};
 use crate::{mfspr, mtspr};
-use crate::allocate::{ptr_as_pinned_array, alloc_array_aligned};
+use crate::allocate::alloc_array_aligned;
 use crate::PointerExt as _;
 use alloc::boxed::Box;
 use core::pin::Pin;
@@ -18,31 +17,27 @@ const PI: *mut u32 = 0xcc00_3000 as *mut u32;
 const BP: u8 = 0x61;
 
 const WPAR_SIZE: usize = 128;
-const FIFO_SIZE: usize = 4096;
-const EFB_SIZE: usize = 1024 * 1024;
+const FIFO_SIZE: usize = 128 * 1024;
 
-struct Wp {
-    data: Pin<Box<[u8; WPAR_SIZE]>>,
-}
+struct Wp;
 
 impl Wp {
     const ADDRESS: *mut u8 = 0xcc00_8000 as *mut u8;
 
     /// Not public because there can be only one set for GX
-    fn new() -> Wp {
+    fn setup() -> Wp {
         // Store to WPAR.
         mtspr!(Wp::ADDRESS.as_phys(), 921);
         // Reenable write gather pipe in HID2.  TODO: fix Dolphin to use this value.
         let hid2 = mfspr!(920);
         mtspr!(hid2 | 0x4000_0000, 920);
-        let data = unsafe { ptr_as_pinned_array::<u8, WPAR_SIZE>(Wp::ADDRESS) };
-        Wp { data }
+        Wp
     }
 
     /// Write a value into the write-gather pipe
     #[inline(always)]
     pub fn write<T>(&mut self, value: T) {
-        let address = self.data.as_mut_ptr() as *mut T;
+        let address = Wp::ADDRESS as *mut T;
         // No need for eieio here, synchronisation is handled by the processor.
         unsafe { ptr::write_volatile(address, value) };
     }
@@ -63,7 +58,7 @@ impl Wp {
     /// Flush the write-gather pipe
     #[inline(always)]
     pub fn flush(&mut self) {
-        let address = self.data.as_mut_ptr() as *mut u32;
+        let address = Wp::ADDRESS as *mut u32;
         unsafe {
             ptr::write_volatile(address, 0u32);
             ptr::write_volatile(address, 0u32);
@@ -77,39 +72,36 @@ impl Wp {
     }
 }
 
-pub struct Efb {
-    data: Pin<Box<[u32; EFB_SIZE]>>,
-}
+pub struct Efb;
 
 impl Efb {
     const ADDRESS: *mut u32 = 0x0800_0000 as *mut u32;
 
     /// Not public because there can be only one set for GX
     fn new() -> Efb {
-        let data = unsafe { ptr_as_pinned_array::<u32, EFB_SIZE>(Efb::ADDRESS) };
-        Efb { data }
+        Efb
     }
 
     /// Get the address of a pixel in EFB memory.
     #[inline(always)]
-    fn addr(&self, x: usize, y: usize) -> u32 {
+    fn addr(&self, x: usize, y: usize) -> *mut u32 {
         assert!(x < 640);
         assert!(y < 528);
         let stride = 1024;
         let addr = (y * stride) + x;
-        unsafe { self.data.as_ptr().offset(addr as isize) as u32 }
+        unsafe { Efb::ADDRESS.add(addr) }.as_uncached()
     }
 
     /// Read the pixel value at coordinate (x, y), in XRGB8888 format.
     #[inline(always)]
     pub fn peek(&self, x: usize, y: usize) -> u32 {
-        read32(self.addr(x, y))
+        unsafe { ptr::read(self.addr(x, y)) }
     }
 
     /// Write to the pixel at coordinate (x, y), in XRGB8888 format.
     #[inline(always)]
     pub fn poke(&mut self, x: usize, y: usize, pixel: u32) {
-        write32(self.addr(x, y), pixel);
+        unsafe { ptr::write(self.addr(x, y), pixel) };
     }
 }
 
@@ -124,7 +116,7 @@ impl Gx {
     /// Initialises both the CPU-side and GPU-side, the write-gather pipe, the EFB, and the FIFO.
     // TODO: this still doesn’t work on hardware…
     pub fn setup() -> Gx {
-        let wp = Wp::new();
+        let wp = Wp::setup();
         let efb = Efb::new();
 
         let mut fifo = alloc_array_aligned::<FIFO_SIZE>();

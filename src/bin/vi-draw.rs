@@ -6,8 +6,13 @@
 
 extern crate luma_core;
 extern crate luma_runtime;
+use luma_core::println;
+use core::fmt::Write;
 
 use luma_core::vi::{Vi, Xfb};
+
+const WIDTH: usize = 640;
+const HEIGHT: usize = 576;
 
 // Constants used for the YUV conversion.
 const YR: i32 = (0.299 * (1 << 16) as f64) as i32;
@@ -77,7 +82,7 @@ fn paint_pixels(xfb: &mut Xfb, padding: i32, time: i32) {
 
 fn main() {
     // Setup the video interface.
-    let xfb = Xfb::allocate(640, 480);
+    let xfb = Xfb::allocate(WIDTH, HEIGHT);
     let mut vi = Vi::setup(xfb);
 
     // First fill the XFB with white.
@@ -86,9 +91,18 @@ fn main() {
         row.fill(0xff80);
     }
 
+    /*
+    for i in 0..HEIGHT {
+        for j in 0..(i * 20 / HEIGHT) {
+            unsafe { xfb.add(i * WIDTH + WIDTH - j - 1).write(0xa000) };
+        }
+    }
+    */
+
     // Then draw to it as fast as we can.
     let mut i = 0;
     loop {
+        println!("frame {}", i);
         paint_pixels(xfb, 20, i);
         i += 1;
     }

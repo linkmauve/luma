@@ -174,15 +174,28 @@ unsafe fn set_bottom_right_xfb(xfb: &Xfb) {
 */
 
 unsafe fn set_display_interrupts() {
+    write32(BASE + 0x30, 0);
+    write32(BASE + 0x34, 0);
+    write32(BASE + 0x38, 0);
+    write32(BASE + 0x3c, 0);
+
+    /*
     write32(BASE + 0x30, 0x110701ae);
     write32(BASE + 0x34, 0x10010001);
     write32(BASE + 0x38, 0x00010001);
     write32(BASE + 0x3c, 0x00010001);
+    */
 }
 
 unsafe fn set_scaled_width(width: u16) {
-    // TODO: add actual support for scaled width…
-    write16(BASE + 0x48, 0x2850);
+    let sixteenth_width = width >> 4;
+    let sixteenth_stride = width >> 4;
+
+    assert!(sixteenth_width <= 0x7f);
+    assert!(sixteenth_stride <= 0x7f);
+    assert!(sixteenth_width <= sixteenth_stride);
+
+    write16(BASE + 0x48, (sixteenth_width << 8) | (sixteenth_stride << 1));
     write16(BASE + 0x4a, 0x0100);
 }
 
@@ -218,9 +231,28 @@ unsafe fn set_border() {
     write16(BASE + 0x74, 0x0000);
 }
 
-unsafe fn setup_interlaced(width: usize, height: usize, xfb: &Xfb) {
+unsafe fn setup_pal50(xfb: &Xfb) {
     unsafe {
-        set_vertical_timing(height as u16, 6);
+        set_vertical_timing(xfb.height() as u16, 5);
+        configure(ConfigureFlags::PAL | ConfigureFlags::INTERLACED | ConfigureFlags::ENABLE);
+        set_horizontal_timing(75, 106, 432, 380, 172, 64);
+        set_field_vertical_timing(1, 35, 0, 36);
+        set_burst_blanking_interval_1(617, 11, 619, 13);
+        set_burst_blanking_interval_2(620, 10, 618, 12);
+        set_top_xfb(xfb);
+        set_bottom_xfb(xfb);
+        set_display_interrupts();
+        // 0x40 and 0x44 are display latch registers, unused?
+        set_scaled_width(xfb.width() as u16);
+        set_aa_filters();
+        set_clock(27 /* MHz */);
+        set_border();
+    }
+}
+
+unsafe fn setup_pal60(xfb: &Xfb) {
+    unsafe {
+        set_vertical_timing(xfb.height() as u16, 6);
         configure(ConfigureFlags::PAL | ConfigureFlags::INTERLACED | ConfigureFlags::ENABLE);
         // TODO: figure out why 0x40 becomes 0x42 once read here…
         set_horizontal_timing(71, 105, 429, 373, 162, 64);
@@ -231,7 +263,7 @@ unsafe fn setup_interlaced(width: usize, height: usize, xfb: &Xfb) {
         set_bottom_xfb(xfb);
         set_display_interrupts();
         // 0x40 and 0x44 are display latch registers, unused?
-        set_scaled_width(width as u16);
+        set_scaled_width(xfb.width() as u16);
         set_aa_filters();
         set_clock(27 /* MHz */);
         set_border();
@@ -247,7 +279,7 @@ pub struct Vi {
 impl Vi {
     /// Setup the VI with the given XFB.
     pub fn setup(xfb: Xfb) -> Vi {
-        unsafe { setup_interlaced(xfb.width(), xfb.height(), &xfb) };
+        unsafe { setup_pal50(&xfb) };
         Vi { xfb }
     }
 

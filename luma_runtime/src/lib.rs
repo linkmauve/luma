@@ -12,6 +12,7 @@ extern crate alloc;
 
 use core::arch::global_asm;
 use core::fmt::Write;
+use core::ffi::CStr;
 use core::panic::PanicInfo;
 use linked_list_allocator::LockedHeap;
 #[allow(unused_imports)]
@@ -36,7 +37,7 @@ global_asm!(include_str!("../asm/system.S"));
 /// This is the executable start function, which directly follows the entry point.
 #[cfg_attr(not(test), lang = "start")]
 #[cfg(not(test))]
-fn start<T>(user_main: fn() -> T, _argc: isize, _argv: *const *const u8, _sigpipe: u8) -> isize
+fn start<T>(user_main: fn() -> T, argc: isize, argv: *const *const u8, sigpipe: u8) -> isize
 where
     T: Termination,
 {
@@ -52,6 +53,12 @@ where
         ALLOCATOR
             .lock()
             .init(stack_addr as *mut u8, 24 * 1024 * 1024 - out_size);
+    }
+
+    println!("got argc={:x} argv={:p} sigpipe={}", argc, argv, sigpipe);
+    for i in 0..argc {
+        let c_str = unsafe { CStr::from_ptr(*argv.offset(i)) };
+        println!("{}", c_str.to_str().unwrap());
     }
 
     // Jump to user defined main function.

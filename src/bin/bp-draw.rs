@@ -89,15 +89,8 @@ fn main() {
     let mut i = 0;
     loop {
         println!("frame {i}");
-        {
-            let efb = gx.efb_mut();
-            paint_pixels(efb, 20, width as i32, height as i32, i);
-        }
-
-        {
-            let mut bp = gx.bp();
-            copy_efb_to_xfb(&mut bp, vi.xfb(), width as u32, height as u32);
-        }
+        paint_pixels(gx.efb_mut(), 20, width as i32, height as i32, i);
+        copy_efb_to_xfb(&mut gx.bp(), vi.xfb(), width as u32, height as u32);
 
         i += 1;
     }

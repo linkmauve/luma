@@ -72,7 +72,7 @@ impl<'a> Bp<'a> {
 
     /// Set the address of the XFB in main RAM
     #[inline(always)]
-    fn set_xfb_addr(&mut self, addr: *mut u8) {
+    fn set_xfb_addr(&mut self, addr: *mut u16) {
         let register = 0x4b;
         let value = (addr.as_phys() as u32) >> 5;
         self.write(register, value);
@@ -100,7 +100,7 @@ impl<'a> Bp<'a> {
     #[inline(always)]
     pub fn set_output(&mut self, xfb: &mut Xfb) {
         self.set_xfb_addr(xfb.as_mut_ptr());
-        self.set_xfb_stride(xfb.stride() as u32);
+        self.set_xfb_stride(xfb.stride_in_u8() as u32);
         self.set_xfb_scale(256);
     }
 

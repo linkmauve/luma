@@ -48,6 +48,13 @@ impl<'a> Bp<'a> {
         self.0.wp.flush();
     }
 
+    /// Ask for an interrupt once the GX is idle again, or something?
+    #[inline(always)]
+    pub fn set_draw_done(&mut self) {
+        let register = 0x45;
+        self.write(register, 0x02);
+    }
+
     /// Set the src coordinates for the EFB copy
     #[inline(always)]
     pub fn set_efb_coord(&mut self, x: u32, y: u32) {

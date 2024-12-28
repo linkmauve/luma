@@ -72,6 +72,7 @@ fn copy_efb_to_xfb(bp: &mut Bp, xfb: &mut Xfb, width: u32, height: u32) {
     bp.set_filter([0x666666, 0x666666, 0x666666, 0x666666]);
     bp.set_vertical_filter([0x00, 0x00, 0x15, 0x16, 0x15, 0x00, 0x00]);
     bp.do_copy(CopyFlag::CLEAR | CopyFlag::TO_XFB);
+    bp.set_draw_done();
     bp.flush();
 }
 

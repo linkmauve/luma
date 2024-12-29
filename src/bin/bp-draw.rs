@@ -8,7 +8,7 @@ extern crate luma_core;
 extern crate luma_runtime;
 
 use luma_core::println;
-use luma_core::gx::{bp::{CopyFlag, Bp}, Gx, Efb};
+use luma_core::gx::{bp::{CopyFlag, Bp, BlendMode, self}, Gx, Efb};
 use luma_core::vi::{Vi, Xfb};
 use core::fmt::Write;
 
@@ -71,6 +71,7 @@ fn copy_efb_to_xfb(bp: &mut Bp, xfb: &mut Xfb, width: u32, height: u32) {
     bp.set_copy_clear_depth(0);
     bp.set_filter([0x666666, 0x666666, 0x666666, 0x666666]);
     bp.set_vertical_filter([0x00, 0x00, 0x15, 0x16, 0x15, 0x00, 0x00]);
+    bp.set_blend_mode(BlendMode::BLEND_ENABLE | BlendMode::COLOR_UPDATE, bp::SrcBlendFactor::SrcAlpha, bp::DstBlendFactor::InvSrcAlpha, bp::LogicOp::Clear);
     bp.do_copy(CopyFlag::CLEAR | CopyFlag::TO_XFB);
     bp.set_draw_done();
     bp.flush();

@@ -15,6 +15,61 @@ bitflags::bitflags! {
     }
 }
 
+bitflags::bitflags! {
+    pub struct BlendMode: u32 {
+        const BLEND_ENABLE = 1 << 0;
+        const LOGIC_OP_ENABLE = 1 << 1;
+        const DITHER = 1 << 2;
+        const COLOR_UPDATE = 1 << 3;
+        const ALPHA_UPDATE = 1 << 4;
+        const SUBTRACT = 1 << 11;
+    }
+}
+
+#[repr(u32)]
+pub enum SrcBlendFactor {
+    Zero = 0,
+    One = 1,
+    DstClr = 2,
+    InvDstClr = 3,
+    SrcAlpha = 4,
+    InvSrcAlpha = 5,
+    DstAlpha = 6,
+    InvDstAlpha = 7,
+}
+
+#[repr(u32)]
+pub enum DstBlendFactor {
+    Zero = 0,
+    One = 1,
+    SrcClr = 2,
+    InvSrcClr = 3,
+    SrcAlpha = 4,
+    InvSrcAlpha = 5,
+    DstAlpha = 6,
+    InvDstAlpha = 7,
+}
+
+#[repr(u32)]
+pub enum LogicOp {
+    Clear = 0,
+    And = 1,
+    AndReverse = 2,
+    Copy = 3,
+    AndInverted = 4,
+    NoOp = 5,
+    Xor = 6,
+    Or = 7,
+    Nor = 8,
+    Equiv = 9,
+    Invert = 10,
+    OrReverse = 11,
+    CopyInverted = 12,
+    OrInverted = 13,
+    Nand = 14,
+    Set = 15,
+}
+
 pub struct Bp<'a>(&'a mut Gx);
 
 impl<'a> Drop for Bp<'a> {
@@ -46,6 +101,14 @@ impl<'a> Bp<'a> {
     #[inline(always)]
     pub fn flush(&mut self) {
         self.0.wp.flush();
+    }
+
+    /// Sets the blend mode.
+    #[inline(always)]
+    pub fn set_blend_mode(&mut self, blend_mode: BlendMode, src_blend_factor: SrcBlendFactor, dst_blend_factor: DstBlendFactor, logic_op: LogicOp) {
+        let register = 0x41;
+        let value = blend_mode.bits() | (dst_blend_factor as u32) << 5 | (src_blend_factor as u32) << 8 | (logic_op as u32) << 12;
+        self.write(register, value);
     }
 
     /// Ask for an interrupt once the GX is idle again, or something?
